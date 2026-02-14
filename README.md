@@ -12,7 +12,7 @@ available reading time.
 - app/: user interface
 - notebooks/: experiments and analysis
 - docs/: system design and demo notes
-- tests/: testing and validation
+- tests/: testing and validation..
 
 ## Team
 - Romina Pouya
