@@ -21,15 +21,46 @@ else:
 
 index = InvertedIndex.build(records)
 
+def personalize(results, preferred_genres):
+    boosted = []
+
+    preferred_genres = [g.strip().lower() for g in preferred_genres]
+    for r in results:
+        score = r.score
+
+        book_genres = [g.strip().lower() for g in r.display.get("categories", "").split(",") if g]
+
+        score = r.score
+        if any(g in book_genres for g in preferred_genres):
+            score += 0.2
+
+        boosted.append({
+            "book_id": r.book_id,
+            "title": r.display.get("title", ""),
+            "authors": r.display.get("authors", ""),
+            "genres": book_genres,
+            "score": score
+        })
+
+    return sorted(boosted, key=lambda x: x["score"], reverse=True)
+
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "POST"])
 def home():
     results = []
     if request.method == "POST":
-        query = request.form["query"]
-        results = search(index, query, top_k=10)
+        # query = request.form["query"]
+        # results = search(index, query, top_k=10)
         # print([(r.book_id, r.display.get('title', ''), r.display.get('authors', ''), r.score) for r in results])
+
+        query = request.form.get("query", "")
+        genres = request.form.getlist("genres") 
+
+        raw_results = search(index, query, top_k = 10)
+        # print(raw_results[0].display)
+
+        results = personalize(raw_results, genres)
 
     return render_template("index.html", results=results)
 

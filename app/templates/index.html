@@ -1,13 +1,19 @@
-<form method="post">
+<form method="POST">
   <input name="query" placeholder="Search books">
-  <button>Search</button>
+
+  <label for="genres">Preferred Genre:</label>
+  <input type="text" name="genres" placeholder="Fiction, Sci-Fi, History">
+
+  <button type="submit">Search</button>
 </form>
+
+
 
 {% for r in results %}
   <p>
-    ID: {{ r.book_id }} <br>
-    Title: {{ r.display.get('title', '') }} <br>
-    Authors: {{ r.display.get('authors', '') }} <br>
+    <b>{{ r.title }}</b> (ID: {{ r.book_id }})<br>
+    Authors: {{ r.authors }}<br>
+    Genres: {{ r.genres | join(', ') }}<br>
     Score: {{ "%.3f"|format(r.score) }}
   </p>
   <hr>
