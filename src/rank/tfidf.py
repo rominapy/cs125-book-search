@@ -36,8 +36,12 @@ def search(
     top_k: int = 10,
     preferred_genres: list[str] | None = None,
     preferred_authors: list[str] | None = None,
+    preferred_moods: list[str] | None = None,
+    preferred_time: str | None = None,
     genre_boost: float = 0.2,
     author_boost: float = 0.3,
+    mood_boost: float = 0.2,
+    time_boost: float = 0.2,
     user_prefs: dict[str, Any] | None = None,
     context: dict[str, Any] | None = None,
 ) -> list[SearchResult]:
@@ -57,6 +61,10 @@ def search(
         merged_prefs["preferred_genres"] = preferred_genres
     if preferred_authors:
         merged_prefs["preferred_authors"] = preferred_authors
+    if preferred_moods:
+        merged_prefs["preferred_moods"] = preferred_moods
+    if preferred_time:
+        merged_prefs["preferred_time"] = preferred_time
 
     reranked_scores = apply_rerank(
         index,
@@ -66,6 +74,8 @@ def search(
         context=context,
         genre_boost=genre_boost,
         author_boost=author_boost,
+        mood_boost=mood_boost,
+        time_boost=time_boost,
     )
     ranked = sorted(reranked_scores.items(), key=lambda item: item[1], reverse=True)[:top_k]
     results: list[SearchResult] = []
@@ -94,11 +104,13 @@ def apply_rerank(
     context: dict[str, Any] | None,
     genre_boost: float = 0.2,
     author_boost: float = 0.3,
+    mood_boost: float = 0.2,
+    time_boost: float = 0.2,
 ) -> dict[str, float]:
     """Second-stage ranking hook for Person C integration.
 
-    Current behavior is a no-op copy. Personalization/context boosts can be added
-    here without changing baseline TF-IDF scoring.
+    Baseline relevance comes from TF-IDF. This layer applies user preference and
+    context boosts (genre, author, mood, time) without changing retrieval math.
     """
     _ = (query_tokens, context)
     reranked = dict(scores)
@@ -107,6 +119,10 @@ def apply_rerank(
 
     preferred_genres = _normalize_pref_list(user_prefs.get("preferred_genres"))
     preferred_authors = _normalize_pref_list(user_prefs.get("preferred_authors"))
+    preferred_moods = _normalize_pref_list(user_prefs.get("preferred_moods"))
+    preferred_time = _normalize_pref_value(
+        user_prefs.get("preferred_time") or (context or {}).get("reading_time")
+    )
 
     for doc_id in reranked:
         display = index.doc_display.get(doc_id, {})
@@ -119,6 +135,12 @@ def apply_rerank(
             authors = _normalize_pref_list(display.get("authors", ""))
             if any(author in authors for author in preferred_authors):
                 reranked[doc_id] += author_boost
+
+        if preferred_moods and _matches_mood(display, preferred_moods):
+            reranked[doc_id] += mood_boost
+
+        if preferred_time and _matches_time_pref(display, preferred_time):
+            reranked[doc_id] += time_boost
     return reranked
 
 
@@ -189,3 +211,75 @@ def _normalize_pref_list(value: Any) -> list[str]:
     else:
         return []
     return [str(item).strip().lower() for item in source if str(item).strip()]
+
+
+def _normalize_pref_value(value: Any) -> str:
+    if value is None:
+        return ""
+    normalized = str(value).strip().lower()
+    aliases = {
+        "short": "short",
+        "quick": "short",
+        "low": "short",
+        "medium": "medium",
+        "mid": "medium",
+        "normal": "medium",
+        "long": "long",
+        "deep": "long",
+        "high": "long",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _matches_time_pref(display: dict[str, str], preferred_time: str) -> bool:
+    num_pages = _parse_num_pages(display.get("num_pages", ""))
+    if num_pages is None:
+        return False
+    if preferred_time == "short":
+        return num_pages <= 200
+    if preferred_time == "medium":
+        return 200 < num_pages <= 400
+    if preferred_time == "long":
+        return num_pages > 400
+    if preferred_time.isdigit():
+        # Optional minutes input: approximate 1 page/minute.
+        minutes = int(preferred_time)
+        return num_pages <= minutes
+    return False
+
+
+def _parse_num_pages(value: str) -> int | None:
+    if not value:
+        return None
+    digits = "".join(ch for ch in str(value) if ch.isdigit())
+    if not digits:
+        return None
+    return int(digits)
+
+
+def _matches_mood(display: dict[str, str], preferred_moods: list[str]) -> bool:
+    searchable_text = " ".join(
+        [
+            str(display.get("categories", "")),
+            str(display.get("subjects", "")),
+            str(display.get("bookshelves", "")),
+            str(display.get("description", "")),
+            str(display.get("title", "")),
+        ]
+    ).lower()
+    if not searchable_text.strip():
+        return False
+
+    for mood in preferred_moods:
+        mood_keywords = _MOOD_KEYWORDS.get(mood, [mood])
+        if any(keyword in searchable_text for keyword in mood_keywords):
+            return True
+    return False
+
+
+_MOOD_KEYWORDS: dict[str, list[str]] = {
+    "relaxing": ["relaxing", "calm", "poetry", "classic", "nature"],
+    "fun": ["fun", "humor", "comedy", "adventure", "fantasy"],
+    "learning": ["history", "science", "biography", "philosophy", "education"],
+    "serious": ["war", "politics", "law", "ethics", "society"],
+}
