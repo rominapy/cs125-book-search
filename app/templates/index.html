@@ -6,37 +6,17 @@
 </head>
 
 <body>
-  <h2>Context-Aware Book Search and Recommendation System</h2>
+  <h2>Book Search & Recommender</h2>
 
 <div class="top-bar">
   <a href="/profile" class="profile-btn">Profile</a>
 </div>
 
-
-<div class="search-box">
-  <form method="POST">
-
-      <label>Mood:</label>
-      <input
-        type="text"
-        name="moods"
-        value="{{ current_moods }}"
-        placeholder="Relaxing, Fun, Learning..."
-      >
-
-      <label>Available Time:</label>
-      <select name="time">
-        <option value="">Any</option>
-        <option value="short" {% if current_time == "short" %}selected{% endif %}>Short read</option>
-        <option value="medium" {% if current_time == "medium" %}selected{% endif %}>Medium</option>
-        <option value="long" {% if current_time == "long" %}selected{% endif %}>Long read</option>
-      </select>
-    </form>
-
-</div>
-<div class ="search-box">
+<div>
+<div class ="rec-search-box">
     {% if recommended %}
     <h3>Recommended For You</h3>
+    <hr>
 
     <div class="recommended-container">
       {% for r in recommended %}
@@ -62,6 +42,8 @@
           <div id="rec-desc-{{ r.book_id }}" class="details-content scrollable" style="display:none;">
           <p><b>ID: </b>{{ r.book_id }} </p>
           <p><b>Description:</b> {{ r.display.get('description', 'No description available') }}</p>
+          <p><b>Genre:</b> {{ r.display.get('categories') }}</p>
+
           </div>
         </div>
       {% endfor %}
@@ -70,22 +52,41 @@
     <p>No Recommendations yet</p>
     {% endif %}
   </div>
+<div class = "middle-inputs">
+    <form method="POST">
 
-<div class="search-box">
-  <form method="POST">
+      <div class = "search-box">
+        <label>Mood:</label>
+        <input
+          type="text"
+          name="moods"
+          value="{{ current_moods }}"
+          placeholder="Relaxing, Fun, Learning..."
+        >
 
-    <label>Search Books:</label>
-      <input 
-        type="text"
-        name="query"
-        value="{{ current_query }}"
-        placeholder="Search books"
-      >
-    <button type="submit">Search</button>
-  </form>
+        <label>Available Time:</label>
+        <input
+          type="text"
+          name="time"
+          value="{{ current_time }}"
+          placeholder="Short, Mid, Long..."
+        >
+      </div>
 
+      <div class = "search-box">
+        <label>Search Books:</label>
+          <input 
+            type="text"
+            name="query"
+            value="{{ current_query }}"
+            placeholder="Search books"
+          >
+        <button type="submit">Search</button>
+      </div>
+    </form>
 </div>
 
+<div class = "middle-inputs">
 {% for r in results %}
   <div class="book-card">
 
@@ -93,7 +94,7 @@
     By: {{ r.display.get('authors', '') }}<br>
     Pages: {{ r.display.get('num_pages', '') }}<br>
 
-    {{ r.display.get('average_rating') }} / 5<br>
+    Rating: {{ r.display.get('average_rating') }} / 5<br>
 
     <div class="button-row">
 
@@ -124,6 +125,7 @@
 
   </div>
 {% endfor %}
+</div>
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

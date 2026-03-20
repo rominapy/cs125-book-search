@@ -107,10 +107,10 @@ def apply_rerank(
     mood_boost: float = 0.2,
     time_boost: float = 0.2,
 ) -> dict[str, float]:
-    """Second-stage ranking hook for Person C integration.
+    """Second-stage ranking hook
 
     Baseline relevance comes from TF-IDF. This layer applies user preference and
-    context boosts (genre, author, mood, time) without changing retrieval math.
+    context boosts (genre, author, mood, time) without changing retrieval math
     """
     _ = (query_tokens, context)
     reranked = dict(scores)
@@ -242,7 +242,6 @@ def _matches_time_pref(display: dict[str, str], preferred_time: str) -> bool:
     if preferred_time == "long":
         return num_pages > 400
     if preferred_time.isdigit():
-        # Optional minutes input: approximate 1 page/minute.
         minutes = int(preferred_time)
         return num_pages <= minutes
     return False

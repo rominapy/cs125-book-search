@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, url_for
 from src.index import InvertedIndex
 from src.ingest import find_pg_catalog, load_pg_catalog
 from src.ingest.kaggle_books import find_books_csv, load_books_csv
@@ -27,7 +27,7 @@ app = Flask(__name__)
 
 app.secret_key = "secret"
 
-def get_recommendations(index, bookmarks, k=5):
+def get_recommendations(index, bookmarks, k=10):
     if not bookmarks:
         return []
 
@@ -65,8 +65,6 @@ def get_recommendations(index, bookmarks, k=5):
 def home():
     results = []
     curr_query = ""
-    current_moods = ""
-    current_time = ""
 
     bookmarks = session.get("bookmarks", [])
     recommended = get_recommendations(index, bookmarks, k=5)
@@ -75,18 +73,22 @@ def home():
     if request.method == "POST":
         curr_query = request.form.get("query", "")
     
-        # preferences (persist)
+        # preferences 
         genres_input = request.form.get("genres", "")
         authors_input = request.form.get("authors", "")
+        mood_input = request.form.get("moods", "")
+        time_input = request.form.get("time", "")
 
         if genres_input:
             session["genres"] = genres_input
         if authors_input:
             session["authors"] = authors_input
+        if mood_input:
+            session["moods"] = mood_input
+        if time_input:
+            session["time"] = time_input
 
-        # context (NOT stored long-term)
-        current_moods = request.form.get("moods", "")
-        current_time = request.form.get("time", "")
+        # context (NOT stored long term)
 
         preferred_genres_list = [
             g.strip().lower()
@@ -100,8 +102,9 @@ def home():
 
         preferred_moods_list = [
             m.strip().lower()
-            for m in current_moods.split(",") if m
+            for m in session.get("moods", "").split(",") if m
         ]
+        
 
         results = search(
             index,
@@ -109,7 +112,7 @@ def home():
             preferred_genres=preferred_genres_list,
             preferred_authors=preferred_authors_list,
             preferred_moods=preferred_moods_list,
-            preferred_time=current_time
+            preferred_time=session.get("time","")
         )
         # print(results)
 
@@ -118,10 +121,8 @@ def home():
         results=results,
         recommended=recommended,
         current_query=curr_query,
-        current_genres=session.get("genres", ""),
-        current_authors=session.get("authors", ""),
-        current_moods=current_moods,
-        current_time=current_time
+        current_moods=session.get("moods", ""),
+        current_time=session.get("time", "")
     )
 
 
@@ -146,6 +147,8 @@ def profile():
 
 @app.route("/bookmark", methods=["POST"])
 def bookmark():
+    bookmarks = session.get("bookmarks", [])
+
     book = {
         "book_id": request.form.get("book_id"),
         "title": request.form.get("title"),
@@ -163,7 +166,8 @@ def bookmark():
         bookmarks.append(book)
         session["bookmarks"] = bookmarks
 
-    return redirect(request.referrer)
+    return redirect(url_for("home"))
+
 @app.route("/remove_bookmark", methods=["POST"])
 def remove_bookmark():
     book_id = request.form.get("book_id")
@@ -175,6 +179,6 @@ def remove_bookmark():
 
     session["bookmarks"] = bookmarks
 
-    return redirect("/profile")  # go back to profile page
+    return redirect("/profile") 
 
 app.run(debug=True)
