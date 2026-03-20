@@ -83,10 +83,8 @@ def home():
             session["genres"] = genres_input
         if authors_input:
             session["authors"] = authors_input
-        if mood_input:
-            session["moods"] = mood_input
-        if time_input:
-            session["time"] = time_input
+        session["moods"] = mood_input
+        session["time"] = time_input
 
         # context (NOT stored long term)
 
@@ -180,5 +178,11 @@ def remove_bookmark():
     session["bookmarks"] = bookmarks
 
     return redirect("/profile") 
+
+@app.route("/clear_prefs", methods=["POST"])
+def clear_prefs():
+    session.pop("moods", None)
+    session.pop("time", None)
+    return "", 204
 
 app.run(debug=True)

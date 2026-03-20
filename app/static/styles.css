@@ -48,6 +48,8 @@ h2 {
     display: grid;
     grid-template-columns: 1fr; 
     justify-items:center;
+    /* padding: 20px; */
+
 }   
 
 label {

@@ -7,3 +7,10 @@ function toggleDetails(id) {
         el.style.display = "none";
     }
 }
+
+function clearPrefs() {
+  document.getElementById("mood-input").value = "";
+  document.getElementById("time-input").value = "";
+  fetch('/clear_prefs', { method: 'POST' });
+
+}

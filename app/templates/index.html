@@ -60,6 +60,7 @@
         <input
           type="text"
           name="moods"
+          id = "mood-input"
           value="{{ current_moods }}"
           placeholder="Relaxing, Fun, Learning..."
         >
@@ -68,9 +69,12 @@
         <input
           type="text"
           name="time"
+          id = "time-input"
           value="{{ current_time }}"
           placeholder="Short, Mid, Long..."
         >
+        <button type="button" onclick="clearPrefs()">Clear</button>
+
       </div>
 
       <div class = "search-box">
@@ -84,9 +88,9 @@
         <button type="submit">Search</button>
       </div>
     </form>
-</div>
+<!-- </div>
 
-<div class = "middle-inputs">
+<div class = "middle-inputs"> -->
 {% for r in results %}
   <div class="book-card">
 
