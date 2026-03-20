@@ -96,7 +96,10 @@
 
     <b>{{ r.display.get('title', '') }}</b> ({{r.display.get('published_year')}})<br>
     By: {{ r.display.get('authors', '') }}<br>
-    Pages: {{ r.display.get('num_pages', '') }}<br>
+
+    {% if r.display.get('num_pages') != "0" %}Pages: {{ r.display.get('num_pages') }} 
+    {%else%} No page count available
+    {% endif %} <br>
 
     Rating: {{ r.display.get('average_rating') }} / 5<br>
 
@@ -118,8 +121,10 @@
 
     <div id="search-desc-{{ r.book_id }}" class="details-content" style="display:none;">
     <p><b>ID: </b>{{ r.book_id }} </p>
-    <p><b>Description:</b> {{ r.display.get('description', 'No description available') }}</p>
-    {% if r.display.get('categories') %}<p><b>Genres:</b> {{ r.display.get('categories') }}</p>{% endif %}
+    {% if r.display.get('description') != "" %} <p><b>Description: </b> {{ r.display.get('description') }} </p>
+    {%else%} No description available
+    {% endif %}
+      {% if r.display.get('categories') %}<p><b>Genres:</b> {{ r.display.get('categories') }}</p>{% endif %}
 
     <p><b>Ranking Score:</b> {{ "%.3f"|format(r.score) }}</p>
     {% if r.why_matched %}
